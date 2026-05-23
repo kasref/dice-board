@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Custom Dice Board</title>
+
+  <style>
+#settingsPanel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  background: #2c3440;
+  padding: 20px;
+  border-radius: 12px;
+
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  width: 200px;
+
+z-index: 9999;
+
+pointer-events: auto;
+}
+#settingsPanel button,
+#settingsPanel input {
+  pointer-events: auto;
+}
+#panelHeader {
+  cursor: grab;
+  font-weight: bold;
+  padding-bottom: 8px;
+  user-select: none;}
+
+.hidden {
+  display: none !important;
+}
+
+#settingsPanel input,
+#settingsPanel button {
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+}
+    body {
+      margin: 0;
+      background: #202831;
+      overflow: hidden;
+      font-family: Arial;
+    }
+
+    #board {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .die {
+
+      width: 200px;
+      height: 200px;
+
+      position: absolute;
+
+      z-index: 1;
+
+      border-radius: 18px;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      font-size: 72px;
+      font-weight: 400;
+
+      color: white;
+
+      cursor: grab;
+      user-select: none;
+
+      transition: 0.15s;
+
+    }
+
+    .die:hover {
+      transform: scale(1.03);
+    }
+
+    #ui {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+
+  display: flex;
+  gap: 12px;
+}
+
+      button {
+  padding: 14px 24px;
+  font-size: 24px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+  </style>
+</head>
+
+<body>
+<div id="settingsPanel" class="hidden">
+  <div id="panelHeader">Die Settings</div>
+
+  <label>Number</label>
+  <input id="setValue" type="number">
+
+  <label>Color</label>
+  <input id="setColor" type="color">
+   <label>Minimum Roll</label>
+<input id="setMin" type="number">
+
+<label>Maximum Roll</label>
+<input id="setMax" type="number">
+
+  <button onclick="applySettings()">Apply</button>
+  <button onclick="closeSettings()">Close</button>
+</div>
+
+<div id="board"></div>
+
+<div id="ui">
+  <button onclick="rollAll()">Roll Dice</button>
+  <button onclick="addDie()">Add Die</button>
+</div>
+
+<script>
+let selectedDie = null;
+const board = document.getElementById("board");
+
+const dice = [];
+const settingsPanel = document.getElementById("settingsPanel");
+function createDie(x, y, color, value) {
+
+  const die = document.createElement("div");
+
+  die.className = "die";
+
+  die.style.left = x + "px";
+  die.style.top = y + "px";
+
+  die.style.background = color;
+
+  const valueLabel = document.createElement("div");
+valueLabel.className = "value";
+valueLabel.textContent = value;
+die.appendChild(valueLabel);
+die.valueLabel = valueLabel;
+die.minRoll = 0;
+die.maxRoll = 3;
+  board.appendChild(die);/* SETTINGS BUTTON */
+
+const settings = document.createElement("div");
+
+settings.innerHTML = "⚙";
+
+settings.style.position = "absolute";
+settings.style.bottom = "10px";
+settings.style.right = "10px";
+
+settings.style.width = "40px";
+settings.style.height = "40px";
+
+settings.style.background = "#3b3b68";
+
+settings.style.borderRadius = "10px";
+
+settings.style.display = "flex";
+settings.style.justifyContent = "center";
+settings.style.alignItems = "center";
+
+settings.style.fontSize = "24px";
+
+settings.style.cursor = "pointer";
+
+die.appendChild(settings);
+
+/* EDIT MENU */
+
+settings.addEventListener("click", (e) => {
+  e.stopPropagation();
+
+  selectedDie = die;
+
+  document.getElementById("setValue").value = die.valueLabel.textContent;
+  document.getElementById("setColor").value =
+  rgbToHex(getComputedStyle(die).backgroundColor);
+document.getElementById("setMin").value = die.minRoll;
+document.getElementById("setMax").value = die.maxRoll;
+  const panel = document.getElementById("settingsPanel");
+
+panel.classList.remove("hidden");
+});
+
+  dice.push(die);
+
+  let dragging = false;
+
+  let offsetX = 0;
+  let offsetY = 0;
+
+ die.addEventListener("mousedown", (e) => {
+
+  // don't drag while settings are open
+  if (!settingsPanel.classList.contains("hidden")) {
+    e.stopPropagation();
+    return;
+  }
+
+  // don't drag when clicking settings icon
+  if (e.target === settings) return;
+
+  dragging = true;
+
+  offsetX = e.offsetX;
+  offsetY = e.offsetY;
+
+});
+
+  document.addEventListener("mousemove", (e) => {
+
+    if (!dragging) return;
+
+    die.style.left = (e.clientX - offsetX) + "px";
+    die.style.top = (e.clientY - offsetY) + "px";
+
+  });
+
+  document.addEventListener("mouseup", () => {
+
+    dragging = false;
+
+  });
+
+  die.addEventListener("dblclick", () => {
+
+    const newValue = prompt(
+      "Enter new number:",
+      die.textContent
+    );
+
+    if (newValue !== null) {
+  valueLabel.textContent = newValue;
+}
+
+  });
+
+}
+
+function rollAll() {
+
+  dice.forEach((die) => {
+
+    const min = die.minRoll;
+const max = die.maxRoll;
+
+const roll =
+  Math.floor(Math.random() * (max - min + 1)) + min;
+    die.valueLabel.textContent = roll;
+
+  });
+
+} // <-- CLOSE rollAll HERE
+function applySettings() {
+
+  if (!selectedDie) return;
+
+  const newValue = document.getElementById("setValue").value;
+  const newColor = document.getElementById("setColor").value;
+const newMin = parseInt(document.getElementById("setMin").value);
+const newMax = parseInt(document.getElementById("setMax").value);
+
+  selectedDie.valueLabel.textContent = newValue;
+  selectedDie.style.background = newColor;
+selectedDie.minRoll = newMin;
+selectedDie.maxRoll = newMax;
+
+  document.getElementById("settingsPanel")
+    .classList.add("hidden");
+}
+
+function closeSettings() {
+  document.getElementById("settingsPanel")
+    .classList.add("hidden");
+}
+function rgbToHex(rgb) {
+  if (!rgb) return "#ffffff";
+
+  const result = rgb.match(/\d+/g);
+  if (!result) return "#ffffff";
+
+  return "#" + result.map(x => {
+    const hex = parseInt(x).toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }).slice(0,3).join("");
+}
+let panelDragging = false;
+
+let panelOffsetX = 0;
+let panelOffsetY = 0;
+
+const panelHeader = document.getElementById("panelHeader");
+
+panelHeader.addEventListener("mousedown", (e) => {
+
+  // only drag from the header
+  if (e.target !== panelHeader) return;
+
+  e.preventDefault();
+
+  panelDragging = true;
+
+  panelOffsetX = e.clientX - settingsPanel.offsetLeft;
+  panelOffsetY = e.clientY - settingsPanel.offsetTop;
+
+});
+document.addEventListener("mousemove", (e) => {
+
+  if (!panelDragging) return;
+
+  settingsPanel.style.left =
+    (e.clientX - panelOffsetX) + "px";
+
+  settingsPanel.style.top =
+    (e.clientY - panelOffsetY) + "px";
+
+  settingsPanel.style.transform = "none";
+
+});
+
+document.addEventListener("mouseup", () => {
+
+  panelDragging = false;
+
+});
+function addDie() {
+
+  const x = Math.random() * (window.innerWidth - 220);
+  const y = Math.random() * (window.innerHeight - 220);
+
+  const colors = ["#ff5555", "#55ff55", "#5599ff", "#ffb000", "#bb55ff"];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+
+  const value = Math.floor(Math.random() * 3);
+
+  createDie(x, y, color, value);
+}
+/* PERFECTLY CENTERED LAYOUT */
+
+createDie(150, 200, "#ff5555", 1);
+createDie(430, 200, "#55ff55", 2);
+createDie(710, 200, "#5599ff", 3);
+createDie(990, 200, "#ffb000", 4);
+
+</script>
+
+</body>
+
+</html>
