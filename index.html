@@ -119,6 +119,8 @@ pointer-events: auto;
 
   <label>Color</label>
   <input id="setColor" type="color">
+<label>Faces (comma separated)</label>
+<input id="setFaces" type="text" placeholder="0,1,2,0">
    <label>Minimum Roll</label>
 <input id="setMin" type="number">
 
@@ -127,6 +129,7 @@ pointer-events: auto;
 
   <button onclick="applySettings()">Apply</button>
   <button onclick="closeSettings()">Close</button>
+<button onclick="removeDie()">Remove Die</button>
 </div>
 
 <div id="board"></div>
@@ -158,8 +161,9 @@ valueLabel.className = "value";
 valueLabel.textContent = value;
 die.appendChild(valueLabel);
 die.valueLabel = valueLabel;
+die.faces = [0, 1, 2];
 die.minRoll = 0;
-die.maxRoll = 3;
+die.maxRoll = 2;
   board.appendChild(die);/* SETTINGS BUTTON */
 
 const settings = document.createElement("div");
@@ -195,6 +199,8 @@ settings.addEventListener("click", (e) => {
   selectedDie = die;
 
   document.getElementById("setValue").value = die.valueLabel.textContent;
+document.getElementById("setFaces").value =
+  die.faces.join(",");
   document.getElementById("setColor").value =
   rgbToHex(getComputedStyle(die).backgroundColor);
 document.getElementById("setMin").value = die.minRoll;
@@ -263,27 +269,31 @@ function rollAll() {
 
   dice.forEach((die) => {
 
-    const min = die.minRoll;
-const max = die.maxRoll;
+    const faces = die.faces;
 
-const roll =
-  Math.floor(Math.random() * (max - min + 1)) + min;
+    const roll =
+      faces[Math.floor(Math.random() * faces.length)];
+
     die.valueLabel.textContent = roll;
 
   });
 
-} // <-- CLOSE rollAll HERE
+}
 function applySettings() {
 
   if (!selectedDie) return;
 
   const newValue = document.getElementById("setValue").value;
   const newColor = document.getElementById("setColor").value;
+const newFaces = document.getElementById("setFaces").value
+  .split(",")
+  .map(v => Number(v.trim()));
 const newMin = parseInt(document.getElementById("setMin").value);
 const newMax = parseInt(document.getElementById("setMax").value);
 
   selectedDie.valueLabel.textContent = newValue;
   selectedDie.style.background = newColor;
+selectedDie.faces = newFaces;
 selectedDie.minRoll = newMin;
 selectedDie.maxRoll = newMax;
 
@@ -345,6 +355,26 @@ document.addEventListener("mouseup", () => {
   panelDragging = false;
 
 });
+function removeDie() {
+
+  if (!selectedDie) return;
+
+  // remove from screen
+  selectedDie.remove();
+
+  // remove from dice array
+  const index = dice.indexOf(selectedDie);
+
+  if (index > -1) {
+    dice.splice(index, 1);
+  }
+
+  // close settings
+  settingsPanel.classList.add("hidden");
+
+  // clear selection
+  selectedDie = null;
+}
 function addDie() {
 
   const x = Math.random() * (window.innerWidth - 220);
